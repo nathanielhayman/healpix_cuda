@@ -56,6 +56,9 @@
     },
     "cSpell.words": [
         "Healpix",
+        "mollview",
+        "mollzoom",
+        "NPIX",
         "stbi"
     ]
 }

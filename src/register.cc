@@ -5,6 +5,7 @@
 #include "healpix_map_fitsio.h"
 
 #include <cmath>
+#include <string>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -15,6 +16,9 @@ struct pixeldata {
     double value;
 };
 
+/*
+ * Determine projection pointing vectors for pixels in a 2D image
+ */
 int register_pixels(double* img_data, int height, int width, int channels, 
     pointing* fov, pointing* off, pixeldata** vecs) 
 {
@@ -39,6 +43,9 @@ int register_pixels(double* img_data, int height, int width, int channels,
     return 0;
 }
 
+/*
+ * Convert an angle (theta, phi) into a normalized vec3 on the unit sphere
+ */
 vec3 ang2vec(pointing* angle) {
     return vec3(
         cos(angle->theta) * cos(angle->phi),
@@ -47,6 +54,9 @@ vec3 ang2vec(pointing* angle) {
     );
 }
 
+/*
+ * Determine which spherical pixels lie within the bounds of a projected 2D pixel
+ */
 int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width, 
     int height, int n_side, pointing* fov, pointing* off, T_Healpix_Base<int>* hp) 
 {
@@ -90,31 +100,74 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
     return 0;
 }
 
-int main() {
-    int nside = 128;
+/*
+ * Stacking kernel for map additions
+ */
+void __stack(Healpix_Map<double>* map, int pix, double value) {
+    // simple averaged stacking
+    (*map)[pix] = ((*map)[pix] + value)/2;
+}
 
-    // HEALPix Base engine (integer indexing)
-    T_Healpix_Base<int> hp(nside, RING);
+/*
+ * Add one HEALPix map onto another
+ */
+int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2) 
+{
+    for (int i = 0; i < map1->Npix(); ++i) {
+        int loc = i;
 
-    // camera FOV and rotational offset (theta, phi)
-    pointing fov(M_PI/4, M_PI/4);
-    pointing off(M_PI/2, 0);
+        __stack(map1, loc, (*map2)[loc]);
+    }
 
+    return 0;
+}
+
+/*
+ * Add one HEALPix map onto another, inside of region \a region
+ */
+int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2,
+    std::vector<int>* region) 
+{
+    for (int i = 0; i < region->size(); ++i) {
+        int loc = (*region)[i];
+
+        __stack(map1, loc, (*map2)[loc]);
+    }
+
+    return 0;
+}
+
+/*
+ * Add a single element onto an existing HEALPix map
+ */
+int stack_hp(Healpix_Map<double>* map, int pix, double value) 
+{
+    __stack(map, pix, value);
+
+    return 0;
+}
+
+/*
+ * Add an image from the filesystem to a HEALPix map with 2D projection
+ */
+int add_image_to_map(Healpix_Map<double>* map, const char* file_loc, 
+    pointing* fov, pointing* off, int nside)
+{
     int width, height, channels;
 
     // vectors with pixel data from image 
     pixeldata* vecs = nullptr;
 
-    // HEALPix Map (double valuation)
-    Healpix_Map<double> map = Healpix_Map<double>(nside, RING);
+    // HEALPix Base engine (integer indexing)
+    T_Healpix_Base<int> hp(nside, RING);
 
     double* img_data = (double*)stbi_load(
-        "image.png", &width, &height, &channels, 1
+        file_loc, &width, &height, &channels, 1
     );
 
     int res = register_pixels(
         img_data, height, width, 
-        channels, &fov, &off, &vecs
+        channels, fov, off, &vecs
     );
 
     if (res != 0) {
@@ -129,27 +182,60 @@ int main() {
         rangeset<int> pixels;
         find_overlapping_pixels(
             &vecs[i], &pixels, width, height, 
-            nside, &fov, &off, &hp
+            nside, fov, off, &hp
         );
 
         std::vector<int> pd = pixels.data();
 
+        // update spherical pixel with corresponding image value
         for (int i = 0; i < pixels.size(); ++i) {
-            map[pd[i]] = vecs[i].value;
+            stack_hp(map, pd[i], vecs[i].value);
+            // (*map)[pd[i]] = vecs[i].value;
         }
 
         // find the union of the two pixel arrays
         // *all_pixels = all_pixels->op_xor(pixels);
     }
 
+    // free the allocated memory
+    free(vecs);
+
+    return 0;
+}
+
+int main() {
+    int nside = 128;
+
+    // camera FOV and rotational offset (theta, phi)
+    pointing fov(M_PI/4, M_PI/4);
+    pointing off(M_PI/2, 0);
+
+    // HEALPix Map (double valuation)
+    Healpix_Map<double> map = Healpix_Map<double>(nside, RING);
+
+    // add the first image
+    int res = add_image_to_map(&map, "image.jpg", &fov, &off, nside);
+
+    if (res != 0) {
+        printf("Error while adding image to map!\n");
+        return res;
+    }
+
+    // rotate the next image by pi/4
+    off.theta += M_PI/4;
+
+    // add the second image
+    int res = add_image_to_map(&map, "image2.jpg", &fov, &off, nside);
+
+    if (res != 0) {
+        printf("Error while adding image to map!\n");
+        return res;
+    }
+
     // save the map to a file
     write_Healpix_map_to_fits(
         "output.fits", map, PLANCK_FLOAT64
     );
-
-
-    // free the allocated memory
-    free(vecs);
 
     return 0;
 }
