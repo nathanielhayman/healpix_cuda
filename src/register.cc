@@ -1,8 +1,7 @@
-#include "healpix_base.h"
-#include "healpix_map.h"
-#include "pointing.h"
-#include "healpix_map.h"
-#include "healpix_map_fitsio.h"
+#include <healpix_base.h>
+#include <pointing.h>
+#include <healpix_map.h>
+#include <healpix_map_fitsio.h>
 
 #include <cmath>
 #include <string>
