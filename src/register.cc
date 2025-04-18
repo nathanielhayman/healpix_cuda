@@ -114,7 +114,7 @@ int main() {
 
     int res = register_pixels(
         img_data, height, width, 
-        channels, &pointing(0.1, 0.2), &pointing(0.3, 0.4), &vecs
+        channels, &fov, &off, &vecs
     );
 
     if (res != 0) {
