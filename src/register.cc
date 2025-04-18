@@ -32,11 +32,12 @@ int register_pixels(double* img_data, int height, int width, int channels,
     // add the pointing vectors to the `vecs` array
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
-            *vecs[(y * width + x) * 3] = pixeldata{
-                (y - height/2) * fov->theta / height,
-                (x - width/2) * fov->phi / width,
-                (double)img_data[y * width + x]
-            };
+            pixeldata pd;
+            pd.theta = (y - height/2) * fov->theta / height;
+            pd.phi = (x - width/2) * fov->phi / width;
+            pd.value = (double)img_data[y * width + x];
+
+            *vecs[(y * width + x) * 3] = pd;
         }
     }
 
@@ -54,6 +55,14 @@ vec3 ang2vec(pointing* angle) {
     );
 }
 
+vec3 ang2vec(pointing angle) {
+    return vec3(
+        cos(angle.theta) * cos(angle.phi),
+        cos(angle.theta) * sin(angle.phi),
+        sin(angle.theta)
+    );
+}
+
 /*
  * Determine which spherical pixels lie within the bounds of a projected 2D pixel
  */
@@ -67,33 +76,25 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
 
     double a = std::fmod((angle->theta - pixel_size_y/2), M_PI);
 
-    vecs[0] = ang2vec(
-        &pointing(
-            std::fmod((angle->theta - pixel_size_y/2), M_PI),
-            std::fmod((angle->phi - pixel_size_x/2), 2*M_PI)
-        )
-    );
+    vecs[0] = ang2vec(pointing(
+        std::fmod((angle->theta - pixel_size_y/2), M_PI),
+        std::fmod((angle->phi - pixel_size_x/2), 2*M_PI)
+    ));
 
-    vecs[1] = ang2vec(
-        &pointing(
-            std::fmod((angle->theta + pixel_size_y/2), M_PI),
-            std::fmod((angle->phi - pixel_size_x/2), 2*M_PI)
-        )
-    );
+    vecs[1] = ang2vec(pointing(
+        std::fmod((angle->theta + pixel_size_y/2), M_PI),
+        std::fmod((angle->phi - pixel_size_x/2), 2*M_PI)
+    ));
 
-    vecs[2] = ang2vec(
-        &pointing(
-            std::fmod((angle->theta + pixel_size_y/2), M_PI),
-            std::fmod((angle->phi + pixel_size_x/2), 2*M_PI)
-        )
-    );
+    vecs[2] = ang2vec(pointing(
+        std::fmod((angle->theta + pixel_size_y/2), M_PI),
+        std::fmod((angle->phi + pixel_size_x/2), 2*M_PI)
+    ));
 
-    vecs[3] = ang2vec(
-        &pointing(
-            std::fmod((angle->theta - pixel_size_y/2), M_PI),
-            std::fmod((angle->phi + pixel_size_x/2), 2*M_PI)
-        )
-    );
+    vecs[3] = ang2vec(pointing(
+        std::fmod((angle->theta - pixel_size_y/2), M_PI),
+        std::fmod((angle->phi + pixel_size_x/2), 2*M_PI)
+    ));
 
     *pixels = hp->query_polygon(vecs);
     
@@ -225,7 +226,7 @@ int main() {
     off.theta += M_PI/4;
 
     // add the second image
-    int res = add_image_to_map(&map, "image2.jpg", &fov, &off, nside);
+    res = add_image_to_map(&map, "image2.jpg", &fov, &off, nside);
 
     if (res != 0) {
         printf("Error while adding image to map!\n");
