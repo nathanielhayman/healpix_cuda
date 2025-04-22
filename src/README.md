@@ -10,3 +10,6 @@ SHARP_CFLAGS="-I/Users/nathanielhayman/work/healpix_cuda/src/libsharp/auto/inclu
 SHARP_LIBS="-L/Users/nathanielhayman/work/healpix_cuda/src/libsharp/auto/lib -lfftpack -lc_utils"
 ```
 
+https://gitlab.mpcdf.mpg.de/mtr/levels/-/tree/master
+
+g++ -I./Healpix_3.83/include/healpix_cxx -I./cfitsio/include -L./Healpix_3.83/lib -L./cfitsio/lib -lhealpix_cxx -lsharp -lcfitsio register.cc stb_impl.cc -o reg

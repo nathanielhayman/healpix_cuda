@@ -1,10 +1,11 @@
 # Compiler and flags
 CXX = c++
-CXXFLAGS = -O2 -std=c++17 -Wall -Ihealpix_cxx -Icxx_helpers -Isharp -Icfitsio
+CXXFLAGS = -O2 -std=c++17 -Wall -Ihealpix_cxx -Icfitsio -Lhealpix_cxx -Lcfitsio -lhealpix_cxx -lcxxsupport  -lsharp -lcfitsio
+
+# -I/Users/nathanielhayman/work/healpix_cuda/src/healpix_cxx/include -I/Users/nathanielhayman/work/healpix_cuda/src/cfitsio/include -L/Users/nathanielhayman/work/healpix_cuda/src/healpix_cxx/lib -L/Users/nathanielhayman/work/healpix_cuda/src/cfitsio/lib
 
 # Source files
-HEALPIX_SRCS = $(wildcard healpix_cxx/*.cc)
-SRCS = register.cc $(HEALPIX_SRCS)
+SRCS = register.cc
 
 # Object files
 OBJS = $(SRCS:.cc=.o)

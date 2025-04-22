@@ -1,0 +1,16 @@
+======================================
+   libsharp 1.0.0: ./test-suite.log
+======================================
+
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+
+System information (uname -a): Darwin 23.6.0 Darwin Kernel Version 23.6.0: Fri Nov 15 15:12:37 PST 2024; root:xnu-10063.141.1.702.7~1/RELEASE_ARM64_T6030
+
+.. contents:: :depth: 2
+

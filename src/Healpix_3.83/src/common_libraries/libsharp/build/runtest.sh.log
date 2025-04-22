@@ -1,0 +1,17 @@
+
++---------------+
+| sharp_acctest |
++---------------+
+
+Detected hardware architecture: default
+Supported vector length: 1
+OpenMP: not supported by this binary
+MPI: not supported by this binary
+
+Checking signs and scales.
+Passed.
+
+Testing map analysis accuracy.
+Passed.
+
+PASS runtest.sh (exit status: 0)
