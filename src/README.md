@@ -12,4 +12,4 @@ SHARP_LIBS="-L/Users/nathanielhayman/work/healpix_cuda/src/libsharp/auto/lib -lf
 
 https://gitlab.mpcdf.mpg.de/mtr/levels/-/tree/master
 
-g++ -I./Healpix_3.83/include/healpix_cxx -I./cfitsio/include -L./Healpix_3.83/lib -L./cfitsio/lib -lhealpix_cxx -lsharp -lcfitsio register.cc stb_impl.cc -o reg
+g++ -I./Healpix_3.83/include/healpix_cxx -I./cfitsio/include -L./Healpix_3.83/lib -L./cfitsio/lib -lhealpix_cxx -lsharp -lcfitsio register.cpp stb_impl.cpp -o reg

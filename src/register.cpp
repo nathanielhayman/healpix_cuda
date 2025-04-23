@@ -11,7 +11,8 @@
 
 #include "stb_image.h"
 
-#define NSIDE 32
+#define NSIDE 1024
+#define MAX_NSIDE 536870912
 
 /*
  * Convert an angle (theta, phi) into a normalized vec3 on the unit sphere
@@ -61,17 +62,18 @@ int register_pixels(unsigned char* img_data, int height, int width, int channels
     // add the pointing vectors to the `vecs` array
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
+            // printf("image data: (%d, %d) -> %d\n", y, x, img_data[(y * width + x) * 3]);
             
-            pd.theta = wrapping_mod((y - height/2) * fov->theta / height + off->theta, M_PI); 
-            pd.phi = wrapping_mod((x - width/2) * fov->phi / width + off->phi, M_PI);
+            pd.theta = (y - height/2) * fov->theta / height + off->theta; 
+            pd.phi = (x - width/2) * fov->phi / width + off->phi;
 
             // if image is 3-channel, convert value to single channel via averaging
             if (!gray) {
                 cur_pix = ((rgb_t*)img_data)[y * width + x];
 
-                pd.value = (cur_pix.r + cur_pix.g + cur_pix.b)/(3.0);
+                pd.value = (cur_pix.r + cur_pix.g + cur_pix.b)/(3);
             } else {
-                pd.value = img_data[y * width + x];
+                pd.value = img_data[(y * width + x) * 3];
             }
 
             vecs[y * width + x] = pd;
@@ -114,9 +116,9 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
         wrapping_mod((angle->phi + pixel_size_x/2), 2*M_PI)
     );
 
-    for (int i = 0; i < vecs.size(); i++) {
-        printf("index: %d, value: (%f, %f)\n", i, vecs[i].theta, vecs[i].phi);
-    }
+    // for (int i = 0; i < vecs.size(); i++) {
+    //     printf("index: %d, value: (%f, %f)\n", i, vecs[i].theta, vecs[i].phi);
+    // }
 
     hp->query_polygon(vecs, *pixels);
     
@@ -126,18 +128,18 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
 /*
  * Stacking kernel for map additions
  */
-void __stack(Healpix_Map<double>* map, int pix, double value) {
+void __stack(Healpix_Map<int>* map, int pix, int value) {
     // simple averaged stacking, add full value if it is empty
-    if ((*map)[pix] == 0)
+    // if ((*map)[pix] == 0)
         (*map)[pix] = value;
-    else
-        (*map)[pix] = ((*map)[pix] + value)/2;
+    // else
+    //     (*map)[pix] = ((*map)[pix] + value)/2;
 }
 
 /*
  * Add one HEALPix map onto another
  */
-int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2) 
+int stack_hp(Healpix_Map<int>* map1, Healpix_Map<int>* map2) 
 {
     for (int i = 0; i < map1->Npix(); ++i) {
         int loc = i;
@@ -151,7 +153,7 @@ int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2)
 /*
  * Add one HEALPix map onto another, iorder of region \a region
  */
-int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2,
+int stack_hp(Healpix_Map<int>* map1, Healpix_Map<int>* map2,
     std::vector<int>* region) 
 {
     for (int i = 0; i < region->size(); ++i) {
@@ -166,7 +168,7 @@ int stack_hp(Healpix_Map<double>* map1, Healpix_Map<double>* map2,
 /*
  * Add a single element onto an existing HEALPix map
  */
-int stack_hp(Healpix_Map<double>* map, int pix, double value) 
+int stack_hp(Healpix_Map<int>* map, int pix, int value) 
 {
     __stack(map, pix, value);
 
@@ -176,7 +178,7 @@ int stack_hp(Healpix_Map<double>* map, int pix, double value)
 /*
  * Add an image from the filesystem to a HEALPix map with 2D projection
  */
-int add_image_to_map(Healpix_Map<double>* map, const char* file_loc, 
+int add_image_to_map(Healpix_Map<int>* map, const char* file_loc, 
     pointing* fov, pointing* off, int order)
 {
     int width, height, channels;
@@ -189,9 +191,9 @@ int add_image_to_map(Healpix_Map<double>* map, const char* file_loc,
     );
 
     // vectors with pixel data from image 
-    pixeldata* vecs = (pixeldata*)malloc(width * height * sizeof(pixeldata));
+    pixeldata* vecs = new pixeldata[width * height];
 
-    printf("Number of channels: %d\n", channels);
+    // printf("Number of channels: %d\n", channels);
 
     int res = register_pixels(
         img_data, height, width, 
@@ -207,18 +209,19 @@ int add_image_to_map(Healpix_Map<double>* map, const char* file_loc,
 
     // find the overlapping spherical pixels for each pixel in the image
     for (int i = 0; i < height * width; ++i) {
+        // printf("pixel attitude at %d: (%f, %f) -> %d\n", i, vecs[i].theta, vecs[i].phi, vecs[i].value);
         rangeset<int>* pixels = new rangeset<int>();
         find_overlapping_pixels(
-            &vecs[i], pixels, width, height, 
+            &(vecs[i]), pixels, width, height, 
             order, fov, &hp
         );
 
         std::vector<int> pd = pixels->data();
 
         // update spherical pixel with corresponding image value
-        for (int j = 0; j < pixels->nval(); ++j) {
+        for (int j = 0; j < pixels->size(); ++j) {
             for (int k = pixels->ivbegin(j); k < pixels->ivend(j); ++k) {
-                printf("processing pixel #%d with value %f\n", k, vecs[i].value);
+                // printf("processing pixel #%d with value %f\n", k, vecs[i].value);
                 stack_hp(map, k, vecs[i].value);
             }
             // (*map)[pd[i]] = vecs[i].value;
@@ -231,20 +234,30 @@ int add_image_to_map(Healpix_Map<double>* map, const char* file_loc,
     }
 
     // free the allocated memory
-    free(vecs);
+    delete[] vecs;
 
     return 0;
 }
 
-int main() {
-    int order = T_Healpix_Base<int>::nside2order(NSIDE);
+int main(int argc, char** argv) {
+    int nside = NSIDE;
+
+    char** p;
+
+    if (argc > 1) {
+        int nside = std::strtol(argv[1], p, 10);
+    }
+
+    nside = nside < MAX_NSIDE ? nside : NSIDE;
+
+    int order = T_Healpix_Base<int>::nside2order(nside);
 
     // camera FOV and rotational offset (theta, phi)
     pointing fov(M_PI/4, M_PI/4);
     pointing off(M_PI/2, 0);
 
     // HEALPix Map (double valuation)
-    Healpix_Map<double>* map = new Healpix_Map<double>(order, RING);
+    Healpix_Map<int>* map = new Healpix_Map<int>(order, RING);
 
     printf("Adding the first image...\n");
 

@@ -3,7 +3,7 @@
 struct pixeldata {
     double theta;
     double phi;
-    double value;
+    int value;
 };
 
 struct rgb_t {
