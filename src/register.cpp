@@ -85,7 +85,7 @@ int register_pixels(unsigned char* img_data, int height, int width, int channels
  * Determine which spherical pixels lie within the bounds of a projected 2D pixel
  */
 int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width, 
-    int height, int n_side, pointing* fov, pointing* off, T_Healpix_Base<int>* hp) 
+    int height, int n_side, pointing* fov, T_Healpix_Base<int>* hp) 
 {
     double pixel_size_y = fov->theta / height;
     double pixel_size_x = fov->phi / width;
@@ -113,6 +113,10 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
         wrapping_mod((angle->theta - pixel_size_y/2), M_PI),
         wrapping_mod((angle->phi + pixel_size_x/2), 2*M_PI)
     );
+
+    for (int i = 0; i < vecs.size(); i++) {
+        printf("index: %d, value: (%f, %f)\n", i, vecs[i].theta, vecs[i].phi);
+    }
 
     hp->query_polygon(vecs, *pixels);
     
@@ -206,15 +210,17 @@ int add_image_to_map(Healpix_Map<double>* map, const char* file_loc,
         rangeset<int>* pixels = new rangeset<int>();
         find_overlapping_pixels(
             &vecs[i], pixels, width, height, 
-            order, fov, off, &hp
+            order, fov, &hp
         );
 
         std::vector<int> pd = pixels->data();
 
         // update spherical pixel with corresponding image value
-        for (int j = 0; j < pixels->size(); ++j) {
-            printf("processing pixel #%d with value %f\n", pd[j], vecs[i].value);
-            stack_hp(map, pd[j], vecs[i].value);
+        for (int j = 0; j < pixels->nval(); ++j) {
+            for (int k = pixels->ivbegin(j); k < pixels->ivend(j); ++k) {
+                printf("processing pixel #%d with value %f\n", k, vecs[i].value);
+                stack_hp(map, k, vecs[i].value);
+            }
             // (*map)[pd[i]] = vecs[i].value;
         }
 
