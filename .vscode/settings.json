@@ -57,10 +57,14 @@
         "queue": "cpp"
     },
     "cSpell.words": [
+        "cuda",
         "Healpix",
+        "Malloc",
+        "Memcpy",
         "mollview",
         "mollzoom",
         "NPIX",
+        "nside",
         "stbi"
     ]
 }

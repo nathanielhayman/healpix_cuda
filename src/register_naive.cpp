@@ -130,10 +130,10 @@ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width,
  */
 void __stack(Healpix_Map<int>* map, int pix, int value) {
     // simple averaged stacking, add full value if it is empty
-    // if ((*map)[pix] == 0)
+    if ((*map)[pix] == 0)
         (*map)[pix] = value;
-    // else
-    //     (*map)[pix] = ((*map)[pix] + value)/2;
+    else
+        (*map)[pix] = ((*map)[pix] + value)/2;
 }
 
 /*
@@ -274,13 +274,13 @@ int main(int argc, char** argv) {
 
     // printf("Adding the second image...\n");
 
-    // // add the second image
-    // res = add_image_to_map(map, (const char*)"image2.jpg", &fov, &off, order);
+    // add the second image
+    res = add_image_to_map(map, (const char*)"image2.jpg", &fov, &off, order);
 
-    // if (res != 0) {
-    //     printf("Error while adding image to map!\n");
-    //     return res;
-    // }
+    if (res != 0) {
+        printf("Error while adding image to map!\n");
+        return res;
+    }
 
     printf("Writing map to file...\n");
 
