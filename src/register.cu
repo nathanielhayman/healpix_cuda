@@ -1,6 +1,19 @@
-#include <gputk.h>
+#include <healpix_base.h>
+#include <pointing.h>
+#include <healpix_map.h>
+#include <healpix_map_fitsio.h>
+#include <healpix_tables.h>
+
+#include "register.h"
+
+#include <cmath>
+#include <string>
+
+#include "stb_image.h"
 
 #define BLOCK_DIM 16
+#define NSIDE 1024
+#define MAX_NSIDE 536870912
 
 /*! Writes diagnostic output and exits with an error status. */
 #define planck_fail(msg) \
@@ -16,9 +29,16 @@ do { throw PlanckError(msg); } while(0)
 #define planck_assert(testval,msg) \
 do { if (testval); else planck_fail(msg); } while(0)
 
-template<typename I> template<typename I2>
-  void T_Healpix_Base<I>::query_multidisc (const arr<vec3> &norm,
-  const arr<double> &rad, int fact, rangeset<I2> &pixset) const
+/*
+ * Returns a modulus which "wraps around" for negative numbers (as in Python)
+ */
+template<typename T> T wrapping_mod(T v, T m) {
+  return std::fmod(m + std::fmod(v, m), m);
+}
+
+template<typename I, typename I2>
+  void query_multidisc (const arr<vec3> &norm,
+  const arr<double> &rad, int fact, rangeset<I2> &pixset)
   {
   bool inclusive = (fact!=0);
   tsize nv=norm.size();
@@ -199,9 +219,9 @@ template<typename I> template<typename I2>
     }
   }
 
-template<typename I> template<typename I2>
-    void T_Healpix_Base<I>::query_polygon
-    (const vector<pointing> &vertex, rangeset<I2> &pixset) const
+template<typename I, typename I2>
+    void query_polygon
+    (const std::vector<pointing> &vertex, rangeset<I2> &pixset)
 {
     tsize nv=vertex.size();
     tsize ncirc = nv;
@@ -245,7 +265,7 @@ template<typename I> template<typename I2>
 /*
  * Determine projection pointing vectors for pixels in a 2D image
  */
-__global__ int register_pixels(unsigned char* img_data, int height, int width, int channels, 
+/* __global__ */ int register_pixels(unsigned char* img_data, int height, int width, int channels, 
     pointing* fov, pointing* off, pixeldata* vecs) 
 {
     bool gray = false;
@@ -288,7 +308,7 @@ __global__ int register_pixels(unsigned char* img_data, int height, int width, i
 /*
  * Determine which spherical pixels lie within the bounds of a projected 2D pixel
  */
-__global__ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width, 
+/* __global__ */ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, int width, 
     int height, int n_side, pointing* fov, T_Healpix_Base<int>* hp) 
 {
     double pixel_size_y = fov->theta / height;
@@ -327,7 +347,7 @@ __global__ int find_overlapping_pixels(pixeldata* angle, rangeset<int>* pixels, 
     return 0;
 }
 
-__global__ void register_pixel(const char* image_data, const pointing* fov, 
+/* __global__ */ void register_pixel(const char* image_data, const pointing* fov, 
     const pointing* off, const vec2* image_size)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -343,18 +363,12 @@ __global__ void register_pixel(const char* image_data, const pointing* fov,
     pd.theta = (y - image_size->y/2) * fov->theta / image_size->y + off->theta; 
     pd.phi = (x - image_size->x/2) * fov->phi / image_size->x + off->phi;
 
-    // if image is 3-channel, convert value to single channel via averaging
-    if (!gray) {
-        cur_pix = ((rgb_t*)img_data)[y * width + x];
-
-        pd.value = (cur_pix.r + cur_pix.g + cur_pix.b)/(3);
-    } else {
-        pd.value = img_data[(y * width + x) * 3];
-    }
+    cur_pix = ((rgb_t*)image_data)[y * image_size->x + x];
+    pd.value = (cur_pix.r + cur_pix.g + cur_pix.b)/(3);
 
 
-    double pixel_size_y = fov->theta / height;
-    double pixel_size_x = fov->phi / width;
+    double pixel_size_y = fov->theta / image_size->y;
+    double pixel_size_x = fov->phi / image_size->x;
 
     std::vector<pointing> vecs(4);
 
@@ -384,7 +398,7 @@ __global__ void register_pixel(const char* image_data, const pointing* fov,
     );
     
     // find corresponding HEALPix pixel indices
-    query_polygon(vecs, *pixels);
+    // query_polygon(vecs, *pixels);
 
     // update spherical pixel with corresponding image value
     for (int j = 0; j < pixels->size(); ++j) {
@@ -416,21 +430,15 @@ int main(int argc, char *argv[]) {
     );
     
     Healpix_Map<int>* map;
-
-    // gpuTKArg_t args;
-
-    // args = gpuTKArg_read(argc, argv);
-
     nside = NSIDE;
 
+    // read nside from command line
     char** p;
-
     if (argc > 1) {
         int nside = std::strtol(argv[1], p, 10);
     }
 
     nside = nside < MAX_NSIDE ? nside : NSIDE;
-
     order = T_Healpix_Base<int>::nside2order(nside);
 
     // camera FOV and rotational offset (theta, phi)

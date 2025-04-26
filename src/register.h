@@ -12,6 +12,11 @@ struct rgb_t {
     char b;
 };
 
+struct vec2 {
+    int x;
+    int y;
+};
+
 /*
  * Determine projection pointing vectors for pixels in a 2D image
  */
