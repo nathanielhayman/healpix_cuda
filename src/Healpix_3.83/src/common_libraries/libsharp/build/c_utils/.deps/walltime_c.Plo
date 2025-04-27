@@ -1,0 +1,11 @@
+c_utils/walltime_c.lo: \
+ /home/warehouse/n.nhan/cse4059/healpix_cuda/src/Healpix_3.83/src/common_libraries/libsharp/c_utils/walltime_c.c \
+ /usr/include/stdc-predef.h \
+ /usr/lib/gcc/x86_64-redhat-linux/8/include/omp.h \
+ /home/warehouse/n.nhan/cse4059/healpix_cuda/src/Healpix_3.83/src/common_libraries/libsharp/c_utils/walltime_c.h
+
+/usr/include/stdc-predef.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/8/include/omp.h:
+
+/home/warehouse/n.nhan/cse4059/healpix_cuda/src/Healpix_3.83/src/common_libraries/libsharp/c_utils/walltime_c.h:
