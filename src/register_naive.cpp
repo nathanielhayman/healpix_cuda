@@ -3,6 +3,7 @@
 #include <healpix_map.h>
 #include <healpix_map_fitsio.h>
 #include <healpix_tables.h>
+#include <chrono>
 
 #include "register.h"
 
@@ -195,10 +196,16 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
 
     printf("Number of channels: %d\n", channels);
 
+    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
     int res = register_pixels(
         img_data, height, width, 
         channels, fov, off, vecs
     );
+    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
+
+    std::chrono::milliseconds ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+
+    printf("register_pixels() took %lldms\n", ms_int.count());
 
     if (res != 0) {
         printf("Error registering pixels\n");
@@ -208,6 +215,7 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
     // rangeset<int>* all_pixels;
 
     // find the overlapping spherical pixels for each pixel in the image
+    t1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < height * width; ++i) {
         // printf("pixel attitude at %d: (%f, %f) -> %d\n", i, vecs[i].theta, vecs[i].phi, vecs[i].value);
         rangeset<int>* pixels = new rangeset<int>();
@@ -232,6 +240,11 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
         // find the union of the two pixel arrays
         // *all_pixels = all_pixels->op_xor(pixels);
     }
+    t2 = std::chrono::high_resolution_clock::now();
+
+    ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+
+    printf("find_overlapping_pixels() took %lldms\n", ms_int.count());
 
     // free the allocated memory
     delete[] vecs;
@@ -262,12 +275,18 @@ int main(int argc, char** argv) {
     printf("Adding the first image...\n");
 
     // add the first image
+    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
     int res = add_image_to_map(map, (const char*)"image.jpg", &fov, &off, order);
+    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
 
     if (res != 0) {
         printf("Error while adding image to map: %d!\n", res);
         return res;
     }
+
+    std::chrono::milliseconds ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+
+    printf("add_image_to_map() took %lldms\n", ms_int.count());
 
     // rotate the next image by pi/4
     off.theta += M_PI/4;
