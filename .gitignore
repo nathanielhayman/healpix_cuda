@@ -1,5 +1,5 @@
 /src/Healpix_3.83
-/src/cfitsio
+/src/cfitsio-4.6.2
 /src/register.dSYM
 *.fits
 *.jpg
