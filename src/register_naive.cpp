@@ -209,7 +209,7 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
 
     // find the overlapping spherical pixels for each pixel in the image
     for (int i = 0; i < height * width; ++i) {
-        printf("pixel attitude at %d: (%f, %f) -> %d\n", i, vecs[i].theta, vecs[i].phi, vecs[i].value);
+        // printf("pixel attitude at %d: (%f, %f) -> %d\n", i, vecs[i].theta, vecs[i].phi, vecs[i].value);
         rangeset<int>* pixels = new rangeset<int>();
         find_overlapping_pixels(
             &(vecs[i]), pixels, width, height, 
