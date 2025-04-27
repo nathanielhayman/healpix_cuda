@@ -1,9 +1,11 @@
 # Compiler and flags
 CXX = c++
-# CXXFLAGS = -O2 -std=c++17 -Wall -I./src/Healpix_3.83/include/healpix_cxx -I./src/cfitsio-4.6.2/include -L./src/Healpix_3.83/lib -L./src/cfitsio-4.6.2/lib -lhealpix_cxx -lsharp -lcfitsio
 
-CXXFLAGS = -O2 -std=c++17 -Wall -I./src/Healpix_3.83/include/healpix_cxx -I./src/cfitsio-4.6.2/include
-LDFLAGS = -L./src/Healpix_3.83/lib -L./src/cfitsio-4.6.2/lib -lhealpix_cxx -lsharp -lcfitsio -Wl,-rpath=./src/Healpix_3.83/lib -Wl,-rpath=./src/cfitsio-4.6.2/lib
+CFITSIO_FOLDER = ./src/cfitsio
+HEALPIX_FOLDER = ./src/Healpix_3.83
+
+CXXFLAGS = -O2 -std=c++17 -Wall -I$(HEALPIX_FOLDER)/include/healpix_cxx -I$(CFITSIO_FOLDER)/include
+LDFLAGS = -L$(HEALPIX_FOLDER)/lib -L$(CFITSIO_FOLDER)/lib -lhealpix_cxx -lsharp -lcfitsio -Wl,-rpath=$(HEALPIX_FOLDER)/lib -Wl,-rpath=$(CFITSIO_FOLDER)/lib
 
 
 # -I/Users/nathanielhayman/work/healpix_cuda/src/healpix_cxx/include -I/Users/nathanielhayman/work/healpix_cuda/src/cfitsio/include -L/Users/nathanielhayman/work/healpix_cuda/src/healpix_cxx/lib -L/Users/nathanielhayman/work/healpix_cuda/src/cfitsio/lib
@@ -24,7 +26,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)
 
-# Compile rule for .cc -> .o
+# Compile rule for .cpp -> .o
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
