@@ -254,11 +254,11 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
 
 int main(int argc, char** argv) {
     int nside = NSIDE;
-
-    char** p;
+    std::string file_loc = "image.jpg";
 
     if (argc > 1) {
-        int nside = std::strtol(argv[1], p, 10);
+        file_loc = argv[1];
+        // nside = std::strtol(argv[1], p, 10);
     }
 
     nside = nside < MAX_NSIDE ? nside : NSIDE;
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
 
     // add the first image
     std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
-    int res = add_image_to_map(map, (const char*)"image.jpg", &fov, &off, order);
+    int res = add_image_to_map(map, file_loc.c_str(), &fov, &off, order);
     std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
 
     if (res != 0) {
