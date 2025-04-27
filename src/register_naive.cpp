@@ -275,14 +275,14 @@ int main(int argc, char** argv) {
     // printf("Adding the second image...\n");
 
     // add the second image
-    res = add_image_to_map(map, (const char*)"image2.jpg", &fov, &off, order);
+    // res = add_image_to_map(map, (const char*)"image2.jpg", &fov, &off, order);
 
-    if (res != 0) {
-        printf("Error while adding image to map!\n");
-        return res;
-    }
+    // if (res != 0) {
+    //     printf("Error while adding image to map!\n");
+    //     return res;
+    // }
 
-    printf("Writing map to file...\n");
+    // printf("Writing map to file...\n");
 
     // save the map to a file
     write_Healpix_map_to_fits(
