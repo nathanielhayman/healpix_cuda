@@ -23,6 +23,16 @@ struct vec3 {
     double z;
 };
 
+struct angle_t {
+    double theta;
+    double phi;
+};
+
+struct camera_t {
+    angle_t fov;
+    angle_t off;
+};
+
 /*
  * Determine projection pointing vectors for pixels in a 2D image
  */
