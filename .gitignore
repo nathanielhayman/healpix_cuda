@@ -5,3 +5,5 @@
 *.fits
 *.jpg
 *.o
+main
+build

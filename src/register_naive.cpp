@@ -12,7 +12,7 @@
 
 #include "stb_image.h"
 
-#define NSIDE 1024
+#define NSIDE 2048
 #define MAX_NSIDE 536870912
 
 /*
@@ -191,17 +191,19 @@ int add_image_to_map(Healpix_Map<int>* map, const char* file_loc,
         file_loc, &width, &height, &channels, 3
     );
 
+    printf("%s, %d, %d, %d, %d\n", file_loc, width, height, channels, 3);
+
     // vectors with pixel data from image 
     pixeldata* vecs = new pixeldata[width * height];
 
     printf("Number of channels: %d\n", channels);
 
-    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
+    auto t1 = std::chrono::high_resolution_clock::now();
     int res = register_pixels(
         img_data, height, width, 
         channels, fov, off, vecs
     );
-    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
+    auto t2 = std::chrono::high_resolution_clock::now();
 
     std::chrono::milliseconds ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
@@ -275,9 +277,9 @@ int main(int argc, char** argv) {
     printf("Adding the first image...\n");
 
     // add the first image
-    std::chrono::time_point t1 = std::chrono::high_resolution_clock::now();
+    auto t1 = std::chrono::high_resolution_clock::now();
     int res = add_image_to_map(map, file_loc.c_str(), &fov, &off, order);
-    std::chrono::time_point t2 = std::chrono::high_resolution_clock::now();
+    auto t2 = std::chrono::high_resolution_clock::now();
 
     if (res != 0) {
         printf("Error while adding image to map: %d!\n", res);
@@ -304,6 +306,8 @@ int main(int argc, char** argv) {
     // printf("Writing map to file...\n");
 
     // save the map to a file
+    std::remove("output.fits");
+
     write_Healpix_map_to_fits(
         "output.fits", *map, PLANCK_FLOAT64
     );
