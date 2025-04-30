@@ -4,7 +4,7 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/src/healpix_cxx/include/healpix_cxx"
+                "${workspaceFolder}/src/eigen"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

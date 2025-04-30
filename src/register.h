@@ -12,17 +12,6 @@ struct rgb_t {
     char b;
 };
 
-struct vec2 {
-    double x;
-    double y;
-};
-
-struct vec3 {
-    double x;
-    double y;
-    double z;
-};
-
 struct angle_t {
     double theta;
     double phi;
@@ -31,6 +20,18 @@ struct angle_t {
 struct camera_t {
     angle_t fov;
     angle_t off;
+};
+
+struct range_t {
+    long start;
+    long end;
+};
+
+struct hpbound_t {
+    int rstart;
+    int rend;
+    int data_size;
+    range_t* pixels;
 };
 
 /*

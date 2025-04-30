@@ -18,21 +18,21 @@
 /*
  * Convert an angle (theta, phi) into a normalized vec3 on the unit sphere
  */
-vec3 ang2vec(pointing* angle) {
-    return vec3(
-        cos(angle->theta) * cos(angle->phi),
-        cos(angle->theta) * sin(angle->phi),
-        sin(angle->theta)
-    );
-}
+// vec3 ang2vec(pointing* angle) {
+//     return vec3(
+//         cos(angle->theta) * cos(angle->phi),
+//         cos(angle->theta) * sin(angle->phi),
+//         sin(angle->theta)
+//     );
+// }
 
-vec3 ang2vec(pointing angle) {
-    return vec3(
-        cos(angle.theta) * cos(angle.phi),
-        cos(angle.theta) * sin(angle.phi),
-        sin(angle.theta)
-    );
-}
+// vec3 ang2vec(pointing angle) {
+//     return vec3(
+//         cos(angle.theta) * cos(angle.phi),
+//         cos(angle.theta) * sin(angle.phi),
+//         sin(angle.theta)
+//     );
+// }
 
 /*
  * Returns a modulus which "wraps around" for negative numbers (as in Python)
