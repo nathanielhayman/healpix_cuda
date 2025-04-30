@@ -13,7 +13,6 @@
                 "-L./cfitsio/lib",
                 "-I/usr/local/include/eigen3",
                 "-L/usr/local/include/eigen3",
-                "-lEigen",
                 "-lhealpix_cxx",
                 "-lsharp",
                 "-lcfitsio",

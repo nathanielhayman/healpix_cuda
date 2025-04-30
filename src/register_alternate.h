@@ -18,6 +18,7 @@ struct angle_t {
 struct camera_t {
     angle_t fov;
     angle_t off;
+    int n_channels;
 };
 
 struct range_t {

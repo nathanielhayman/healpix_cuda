@@ -5,11 +5,12 @@
 #include <algorithm>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include "stb_image.h"
 
 #define BLOCK_DIM 16
-#define ORDER 4
+#define ORDER 2
 #define MAX_NSIDE 536870912
 #define MAX_ORDER
 
@@ -84,9 +85,10 @@ T wrapping_mod(T v, T m)
  */
 void ang2vec(Vector3d *vec, const angle_t *angle)
 {
-    (*vec)[0] = cos(angle->theta) * cos(angle->phi);
-    (*vec)[1] = cos(angle->theta) * sin(angle->phi);
-    (*vec)[2] = sin(angle->theta);
+    double st=sin(angle->theta);
+    (*vec)[0] = st*cos(angle->phi);
+    (*vec)[1] = st*sin(angle->phi);
+    (*vec)[2] = cos(angle->theta);
 }
 
 void vec2ang(angle_t *angle, const Vector3d *vec)
@@ -340,7 +342,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                 ff = true;
             }
 
-            pixset.pixels[iz - dr] = tr;
+            pixset.pixels[iz - dr - irmin] = tr;
 
             pixset.rend = iz;
         }
@@ -416,7 +418,7 @@ void query_square(const angle_t* vertex, hpbound_t &pixset)
 /*
  * Stacking kernel for map additions
  */
-void __stack(double* map, int pix, int value) {
+void __stack(int* map, int pix, int value) {
     // simple averaged stacking, add full value if it is empty
     if (map[pix] == 0)
         map[pix] = value;
@@ -427,7 +429,7 @@ void __stack(double* map, int pix, int value) {
 /*
  * Add a single element onto an existing HEALPix map
  */
-int stack_hp(double* map, int pix, int value) 
+int stack_hp(int* map, int pix, int value) 
 {
     __stack(map, pix, value);
 
@@ -435,7 +437,7 @@ int stack_hp(double* map, int pix, int value)
 }
 
 void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, int y,
-                    camera_t *deviceCamProps, double *deviceMap)
+                    camera_t *deviceCamProps, int *deviceMap)
 {
     rgb_t cur_pix;
 
@@ -445,8 +447,12 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
     pd.theta = (y - imageSize->y() / 2) * deviceCamProps->fov.theta / imageSize->y() + deviceCamProps->off.theta;
     pd.phi = (x - imageSize->x() / 2) * deviceCamProps->fov.phi / imageSize->x() + deviceCamProps->off.phi;
 
-    cur_pix = ((rgb_t *)imageData)[y * imageSize->x() + x];
-    pd.value = (cur_pix.r + cur_pix.g + cur_pix.b) / (3);
+    if (deviceCamProps->n_channels == 3) {
+        cur_pix = ((rgb_t *)imageData)[y * imageSize->x() + x];
+        pd.value = (cur_pix.r + cur_pix.g + cur_pix.b) / (3);
+    } else {
+        pd.value = imageData[(y * imageSize->x() + x) * 3];
+    }
 
     double pixel_size_y = deviceCamProps->fov.theta / imageSize->y();
     double pixel_size_x = deviceCamProps->fov.phi / imageSize->x();
@@ -488,7 +494,7 @@ int main(int argc, char *argv[])
 
     camera_t *camProps;
     unsigned char *imageData;
-    double *mapData;
+    int *mapData;
 
     const char *fileLoc = "image.jpg";
 
@@ -500,7 +506,7 @@ int main(int argc, char *argv[])
     mapSize = 12 * pow((long)nside, 2);
 
     camProps = (camera_t *)calloc(1, sizeof(camera_t));  // custom camera properties
-    mapData = (double *)calloc(mapSize, sizeof(double)); // HEALPix pixel data
+    mapData = (int *)calloc(mapSize, sizeof(int)); // HEALPix pixel data
 
     // camera FOV and rotational offset (theta, phi)
     camProps->fov.theta = halfpi / 2;
@@ -509,6 +515,8 @@ int main(int argc, char *argv[])
 
     imageData = stbi_load(
         fileLoc, &width, &height, &channels, 3);
+    
+    camProps->n_channels = channels;
 
     // set size of image data for transfer
     imageSize = Vector2i(width, height);
@@ -525,6 +533,8 @@ int main(int argc, char *argv[])
             register_pixel(imageData, &imageSize, i, j, camProps, mapData);
         }
     }
+
+
 
     free(camProps);
     free(imageData);
