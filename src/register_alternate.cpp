@@ -291,11 +291,12 @@ void query_multidisc(const Vector3d* norm, int norm_l,
         get_ring_info_small(iz, ipix1, nr, shifted);
         double shift = shifted ? 0.5 : 0.;
 
-        range_t tr;
+        hprange_t tr;
 
         // add range of pixels from the start pixel to the last (+nr)
         tr.start = ipix1;
         tr.end = ipix1 + nr;
+        tr.ring = iz;
 
         // for each disc in the query, check which pixels in the current row actually
         // intersect a disc
@@ -319,20 +320,32 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                     ip_hi -= nr;
                 }
 
+                l = ipix1 + ip_lo;
+                h = ipix1 + ip_hi + 1;
+                
                 if (ip_lo < 0) {
                     // tr.remove(ipix1 + ip_hi + 1, ipix1 + ip_lo + nr);
-                    l = ipix1 + ip_hi + 1;
-                    h = ipix1 + ip_lo + nr;
+                    l = ipix1 + ip_lo + nr;
+                    // h = ipix1 + ip_hi + 1;
 
-                    tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
+                    // tr.start = l;
+                    // tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
                 }
-                else {
-                    l = ipix1 + ip_lo;
-                    h = ipix1 + ip_hi + 1;
 
-                    tr.start = max(tr.start, l);
-                    tr.end = min(tr.end, h);
-                }
+                tr.start = max(tr.start, l);  // l' = max(l_0, l)
+
+                if ((tr.start > tr.end) && !(l > h))  // either l > h or l_0 > h_0
+                    tr.end = max(tr.end, h);  // h' = max(h_0, h)
+                else
+                    tr.end = min(tr.end, h);  // h' = max(h_0, h)
+
+                // else {
+                //     l = ipix1 + ip_lo;
+                //     h = ipix1 + ip_hi + 1;
+
+                //     tr.start = max(tr.start, l);
+                //     tr.end = min(tr.end, h);
+                // }
             }
         }
 
@@ -474,15 +487,31 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
 
     hpbound_t pixels;
 
-    pixels.pixels = (range_t*)malloc(sizeof(range_t) * nring_);
+    pixels.pixels = (hprange_t*)malloc(sizeof(hprange_t) * nring_);
 
     // find corresponding HEALPix pixel indices
     query_square(vecs, pixels);
 
+    hprange_t range;
+
+    long minpix;
+    long numpix;
+    bool shifted;
+
     // update spherical pixels with corresponding image value
-    for (int r = 0; r < pixels.data_size; r++) {  // row
-        for (int i = pixels.pixels[r].start; i < pixels.pixels[r].end; i++) {  // pixel
-            stack_hp(deviceMap, i, pd.value);
+    for (int row = 0; row < pixels.data_size; row++) {  // row
+        range = pixels.pixels[row];
+        if (range.start > range.end) {
+            get_ring_info_small(range.ring, minpix, numpix, shifted);
+
+            for (int i = range.start; i < minpix + numpix; i++)
+                stack_hp(deviceMap, i, pd.value);
+
+            for (int i = minpix; i < range.end; i++)
+                stack_hp(deviceMap, i, pd.value);
+        } else {
+            for (int i = range.start; i < range.end; i++)  // pixel
+                stack_hp(deviceMap, i, pd.value);
         }
     }
 }
@@ -513,7 +542,8 @@ int main(int argc, char *argv[])
     // camera FOV and rotational offset (theta, phi)
     camProps->fov.theta = halfpi / 2;
     camProps->fov.phi = halfpi / 2;
-    camProps->off.theta = halfpi;
+    camProps->off.theta = halfpi /2;
+    camProps->off.phi = 0;
 
     imageData = stbi_load(
         fileLoc, &width, &height, &channels, 3);

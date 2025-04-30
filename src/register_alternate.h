@@ -21,14 +21,15 @@ struct camera_t {
     int n_channels;
 };
 
-struct range_t {
+struct hprange_t {
     long start;
     long end;
+    long ring;
 };
 
 struct hpbound_t {
     int rstart;
     int rend;
     int data_size;
-    range_t* pixels;
+    hprange_t* pixels;
 };
