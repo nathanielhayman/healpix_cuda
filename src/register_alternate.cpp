@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <stdio.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -10,7 +11,7 @@
 #include "stb_image.h"
 
 #define BLOCK_DIM 16
-#define ORDER 2
+#define ORDER 3
 #define MAX_NSIDE 536870912
 #define MAX_ORDER
 
@@ -21,6 +22,7 @@ static const long ncap_ = (npface_ - nside_) << 1;
 static const long npix_ = 12 * npface_;
 static const long fact2_ = 4. / npix_;
 static const long fact1_ = (nside_ << 1) * fact2_;
+static const long nring_ = 4 * nside_ - 1;
 
 static const double twothird = 2.0 / 3.0;
 static const double pi = 3.141592653589793238462643383279502884197;
@@ -209,7 +211,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
     double rpsmall, rpbig;
     rpsmall = rpbig = 0;
 
-    int irmin = 1, irmax = 4 * nside_ - 1;
+    int irmin = 1, irmax = nring_;
 
     // z0 contains the relative heights of each disc (cos of the colatitude)
     double z0[nv], xa[nv], cosrsmall[nv], cosrbig[nv];
@@ -258,7 +260,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
             // find the max row corresponding to the disc
             double rlat2 = pnt.theta + rsmall;
             double zmin = cos(rlat2);
-            long irmax_t = (rlat2 >= pi) ? 4 * nside_ - 1 : ring_above(zmin);
+            long irmax_t = (rlat2 >= pi) ? nring_ : ring_above(zmin);
 
             if (irmax_t < irmax)
                 irmax = irmax_t;
@@ -439,8 +441,6 @@ int stack_hp(int* map, int pix, int value)
 void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, int y,
                     camera_t *deviceCamProps, int *deviceMap)
 {
-    rgb_t cur_pix;
-
     pixeldata pd;
 
     // Register pixel center to polar coordinates
@@ -448,7 +448,7 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
     pd.phi = (x - imageSize->x() / 2) * deviceCamProps->fov.phi / imageSize->x() + deviceCamProps->off.phi;
 
     if (deviceCamProps->n_channels == 3) {
-        cur_pix = ((rgb_t *)imageData)[y * imageSize->x() + x];
+        rgb_t cur_pix = ((rgb_t *)imageData)[y * imageSize->x() + x];
         pd.value = (cur_pix.r + cur_pix.g + cur_pix.b) / (3);
     } else {
         pd.value = imageData[(y * imageSize->x() + x) * 3];
@@ -473,6 +473,8 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
     vecs[3].phi = wrapping_mod((pd.phi + pixel_size_x / 2), 2 * pi);
 
     hpbound_t pixels;
+
+    pixels.pixels = (range_t*)malloc(sizeof(range_t) * nring_);
 
     // find corresponding HEALPix pixel indices
     query_square(vecs, pixels);
@@ -527,14 +529,30 @@ int main(int argc, char *argv[])
     { // outer loop -> blocks
         for (int j = 0; j < BLOCK_DIM; j++)
         { // inner loop -> threads
-            if (i * BLOCK_DIM + j > imageMag)
+            if (i * BLOCK_DIM + j >= imageMag)
                 break;
 
             register_pixel(imageData, &imageSize, i, j, camProps, mapData);
         }
     }
 
+    FILE* fptr;
 
+    fptr = fopen("map_out", "w");
+
+    if (fptr == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    fwrite(&order_, sizeof(int), 1, fptr);
+
+    fwrite(&npix_, sizeof(long), 1, fptr);
+
+    // write data to file
+    fwrite(mapData, sizeof(int), npix_, fptr);
+
+    fclose(fptr);
 
     free(camProps);
     free(imageData);

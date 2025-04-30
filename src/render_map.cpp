@@ -1,8 +1,8 @@
-#include "healpix_map.h";
-#include "healpix_base.h";
-#include "healpix_map_fitsio.h";
-#include "alloc_utils.h";
-#include "arr.h";
+#include "healpix_map.h"
+#include "healpix_base.h"
+#include "healpix_map_fitsio.h"
+#include "alloc_utils.h"
+#include "arr.h"
 
 #include <string>
 #include <fstream>
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     std::ifstream inputFile(filename, std::ios::binary);
 
     int order;
-    int size;
+    long size;
 
     if (inputFile.is_open()) {
         inputFile.read(reinterpret_cast<char*>(&order), sizeof(order)); // read order from first line
@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
     write_Healpix_map_to_fits(
         "output.fits", *map, PLANCK_FLOAT64
     );
+
+    printf("Wrote map to file!\n");
 
     free(map);
     
