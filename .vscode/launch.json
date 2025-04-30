@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "(lldb) Attach",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${fileDirname}/${fileBasenameNoExtension}",
+            "preLaunchTask": "C/C++: clang++ build active file",
+            "MIMode": "lldb"
+        }
+    ]
+}
