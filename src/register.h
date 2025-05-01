@@ -7,9 +7,9 @@ struct pixeldata {
 };
 
 struct rgb_t {
-    char r;
-    char g;
-    char b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 };
 
 struct angle_t {

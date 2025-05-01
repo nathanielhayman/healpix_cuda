@@ -62,7 +62,8 @@
         "unordered_set": "cpp",
         "valarray": "cpp",
         "condition_variable": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "filesystem": "cpp"
     },
     "cSpell.words": [
         "cuda",

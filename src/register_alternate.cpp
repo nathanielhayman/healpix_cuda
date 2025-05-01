@@ -11,7 +11,7 @@
 #include "stb_image.h"
 
 #define BLOCK_DIM 16
-#define ORDER 3
+#define ORDER 5
 #define MAX_NSIDE 536870912
 #define MAX_ORDER
 
@@ -20,8 +20,8 @@ static const long nside_ = 1 << order_;
 static const long npface_ = nside_ << order_;
 static const long ncap_ = (npface_ - nside_) << 1;
 static const long npix_ = 12 * npface_;
-static const long fact2_ = 4. / npix_;
-static const long fact1_ = (nside_ << 1) * fact2_;
+static const double fact2_ = 4. / npix_;
+static const double fact1_ = (nside_ << 1) * fact2_;
 static const long nring_ = 4 * nside_ - 1;
 
 static const double twothird = 2.0 / 3.0;
@@ -32,14 +32,11 @@ static const double inv_halfpi = 0.6366197723675813430755350534900574;
 static const double inv_twopi = 1.0 / twopi;
 static const double fourpi = 12.56637061435917295385057353311801153679;
 static const double inv_sqrt4pi = 0.2820947917738781434740397257803862929220;
-
 static const double ln2 = 0.6931471805599453094172321214581766;
 static const double inv_ln2 = 1.4426950408889634073599246810018921;
 static const double ln10 = 2.3025850929940456840179914546843642;
-
 static const double onethird = 1.0 / 3.0;
 static const double fourthird = 4.0 / 3.0;
-
 static const double degr2rad = pi / 180.0;
 static const double arcmin2rad = degr2rad / 60;
 static const double rad2degr = 180.0 / pi;
@@ -99,50 +96,50 @@ void vec2ang(angle_t *angle, const Vector3d *vec)
     angle->phi = ((0 < vec->y()) - (vec->y() < 0)) * acos(vec->x() / (sqrt(pow(vec->x(), 2) + pow(vec->y(), 2))));
 }
 
-long loc2pix(double z, double phi,
-             double sth, bool have_sth)
-{
-    double za = abs(z);
-    double tt = fmod(phi * inv_halfpi, 4.0); // in [0,4)
+// long loc2pix(double z, double phi,
+//              double sth, bool have_sth)
+// {
+//     double za = abs(z);
+//     double tt = fmod(phi * inv_halfpi, 4.0); // in [0,4)
 
-    if (za <= twothird) // Equatorial region
-    {
-        long nl4 = 4 * nside_;
-        double temp1 = nside_ * (0.5 + tt);
-        double temp2 = nside_ * z * 0.75;
-        long jp = long(temp1 - temp2); // index of  ascending edge line
-        long jm = long(temp1 + temp2); // index of descending edge line
+//     if (za <= twothird) // Equatorial region
+//     {
+//         long nl4 = 4 * nside_;
+//         double temp1 = nside_ * (0.5 + tt);
+//         double temp2 = nside_ * z * 0.75;
+//         long jp = long(temp1 - temp2); // index of  ascending edge line
+//         long jm = long(temp1 + temp2); // index of descending edge line
 
-        // ring number counted from z=2/3
-        long ir = nside_ + 1 + jp - jm; // in {1,2n+1}
-        long kshift = 1 - (ir & 1);     // kshift=1 if ir even, 0 otherwise
+//         // ring number counted from z=2/3
+//         long ir = nside_ + 1 + jp - jm; // in {1,2n+1}
+//         long kshift = 1 - (ir & 1);     // kshift=1 if ir even, 0 otherwise
 
-        long t1 = jp + jm - nside_ + kshift + 1 + nl4 + nl4;
-        long ip = (order_ > 0) ? (t1 >> 1) & (nl4 - 1) : ((t1 >> 1) % nl4); // in {0,4n-1}
+//         long t1 = jp + jm - nside_ + kshift + 1 + nl4 + nl4;
+//         long ip = (order_ > 0) ? (t1 >> 1) & (nl4 - 1) : ((t1 >> 1) % nl4); // in {0,4n-1}
 
-        return ncap_ + (ir - 1) * nl4 + ip;
-    }
-    else // North & South polar caps
-    {
-        double tp = tt - long(tt);
-        double tmp = ((za < 0.99) || (!have_sth)) ? nside_ * sqrt(3 * (1 - za)) : nside_ * sth / sqrt((1. + za) / 3.);
+//         return ncap_ + (ir - 1) * nl4 + ip;
+//     }
+//     else // North & South polar caps
+//     {
+//         double tp = tt - long(tt);
+//         double tmp = ((za < 0.99) || (!have_sth)) ? nside_ * sqrt(3 * (1 - za)) : nside_ * sth / sqrt((1. + za) / 3.);
 
-        long jp = long(tp * tmp);         // increasing edge line index
-        long jm = long((1.0 - tp) * tmp); // decreasing edge line index
+//         long jp = long(tp * tmp);         // increasing edge line index
+//         long jm = long((1.0 - tp) * tmp); // decreasing edge line index
 
-        long ir = jp + jm + 1;   // ring number counted from the closest pole
-        long ip = long(tt * ir); // in {0,4*ir-1}
-        planck_assert((ip >= 0) && (ip < 4 * ir), "must not happen");
-        // ip %= 4*ir;
+//         long ir = jp + jm + 1;   // ring number counted from the closest pole
+//         long ip = long(tt * ir); // in {0,4*ir-1}
+//         planck_assert((ip >= 0) && (ip < 4 * ir), "must not happen");
+//         // ip %= 4*ir;
 
-        return (z > 0) ? 2 * ir * (ir - 1) + ip : npix_ - 2 * ir * (ir + 1) + ip;
-    }
-}
+//         return (z > 0) ? 2 * ir * (ir - 1) + ip : npix_ - 2 * ir * (ir + 1) + ip;
+//     }
+// }
 
-inline long zphi2pix(double z, double phi)
-{
-    return loc2pix(z, phi, 0., false);
-}
+// inline long zphi2pix(double z, double phi)
+// {
+//     return loc2pix(z, phi, 0., false);
+// }
 
 // get the ring above the specified
 inline int ring_above(double z)
@@ -186,6 +183,12 @@ inline void get_ring_info_small(long ring, long &startpix,
         ringpix = 4 * nr;
         startpix = npix_ - 2 * nr * (nr + 1);
     }
+}
+
+inline bool is_in(int x, int l, int h, int nr) {
+    if (l <= h)
+        return l <= x && x < h;
+    return x >= l || x < h;
 }
 
 /*!
@@ -294,9 +297,11 @@ void query_multidisc(const Vector3d* norm, int norm_l,
         hprange_t tr;
 
         // add range of pixels from the start pixel to the last (+nr)
-        tr.start = ipix1;
-        tr.end = ipix1 + nr;
+        tr.start = -1;
+        tr.end = -1;
         tr.ring = iz;
+
+        bool nysq = false;
 
         // for each disc in the query, check which pixels in the current row actually
         // intersect a disc
@@ -309,6 +314,8 @@ void query_multidisc(const Vector3d* norm, int norm_l,
 
             if (ysq > 0) // avoid divide by zero
             {
+                nysq = true;
+
                 double dphi = atan2(sqrt(ysq), x);
 
                 long ip_lo = floor(nr * inv_twopi * (ptg[j].phi - dphi) - shift) + 1;
@@ -320,24 +327,98 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                     ip_hi -= nr;
                 }
 
-                l = ipix1 + ip_lo;
+                l = ip_lo < 0 ? ipix1 + ip_lo + nr : ipix1 + ip_lo;
                 h = ipix1 + ip_hi + 1;
-                
-                if (ip_lo < 0) {
-                    // tr.remove(ipix1 + ip_hi + 1, ipix1 + ip_lo + nr);
-                    l = ipix1 + ip_lo + nr;
-                    // h = ipix1 + ip_hi + 1;
 
-                    // tr.start = l;
-                    // tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
+                // ip_lo = ((ip_lo % nr) + nr) % nr;
+                // ip_hi = ((ip_hi % nr) + nr) % nr;
+
+                // l = ((ipix1 + ip_lo) % nr + nr) % nr;
+                // h = ((ipix1 + ip_hi + 1) % nr + nr) % nr;
+
+                if (tr.start == -1 && tr.end == -1) {
+                    tr.start = l;
+                    tr.end = h;
+                    continue;
                 }
 
-                tr.start = max(tr.start, l);  // l' = max(l_0, l)
+                bool w1 = l >= h;
+                bool w2 = tr.start >= tr.end;
 
-                if ((tr.start > tr.end) && !(l > h))  // either l > h or l_0 > h_0
-                    tr.end = max(tr.end, h);  // h' = max(h_0, h)
-                else
-                    tr.end = min(tr.end, h);  // h' = max(h_0, h)
+                if (!w1 && !w2) {
+                    tr.start = max(tr.start, l);
+                    tr.end = min(tr.end, h);
+                } else if (w1 && w2) {
+                    if (!is_in(tr.start, l, h, nr))
+                        tr.start = l;
+                    
+                    if (!is_in(tr.end - 1, l, h, nr))
+                        tr.end = h;
+                } else {
+                    int l2 = tr.start;
+                    int h2 = tr.end;
+
+                    if (!w1 && w2) {
+                        int tmp;
+                        tmp = l; l = l2; l2 = tmp;
+                        tmp = h; h = h2; h2 = tmp;
+                        tmp = w1; w1 = w2; w2 = tmp;
+                    }
+
+                    if (is_in(l2, l, h, nr)) {
+                        tr.start = l2;
+                    } else if (is_in(l, l2, h2, nr)) {
+                        tr.start = l;
+                    } else {
+                        // planck_assert(false, "Invalid intersection of edges!\n");
+                        nysq = false;
+                        break;
+                    }
+
+                    int end = (h < h2) ? h : h2;
+                    if (!is_in(tr.start, l2, h2, nr) || !is_in(tr.start, l, h, nr)) {
+                        // planck_assert(false, "Invalid intersection of edges!\n");
+                        nysq = false;
+                        break;
+                    }
+
+                    tr.end = end;
+                }
+                
+                // if (ip_lo < 0) {
+                //     // tr.remove(ipix1 + ip_hi + 1, ipix1 + ip_lo + nr);
+                //     l = ipix1 + ip_lo + nr;
+                //     // h = ipix1 + ip_hi + 1;
+
+                //     // tr.start = l;
+                //     // tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
+                // }
+
+                // if (tr.start == -1 && tr.end == -1) {
+                //     tr.start = l;
+                //     tr.end = h;
+                //     continue;
+                // }
+
+                // if (l < h && tr.start > tr.end)
+                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
+                // else
+                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
+
+                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
+                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
+                // else
+                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
+
+                // if (l > h && tr.start < tr.end)
+                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
+                // else
+                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
+
+                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
+                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
+                // else
+                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
 
                 // else {
                 //     l = ipix1 + ip_lo;
@@ -349,7 +430,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
             }
         }
 
-        if (tr.start == tr.end)
+        if (tr.start == tr.end || !nysq)
             ++dr;
         else {
             if (!ff) {
@@ -542,7 +623,7 @@ int main(int argc, char *argv[])
     // camera FOV and rotational offset (theta, phi)
     camProps->fov.theta = halfpi / 2;
     camProps->fov.phi = halfpi / 2;
-    camProps->off.theta = halfpi /2;
+    camProps->off.theta = halfpi;
     camProps->off.phi = 0;
 
     imageData = stbi_load(

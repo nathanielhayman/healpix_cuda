@@ -6,6 +6,7 @@
 
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -14,12 +15,23 @@ int main(int argc, char* argv[]) {
     }
 
     const std::string filename = argv[1];
+    const std::string ofile = "output.fits";
 
     std::vector<int> arr;
     std::ifstream inputFile(filename, std::ios::binary);
 
     int order;
     long size;
+
+    try {
+        if (std::__fs::filesystem::remove(ofile)) {
+            std::cout << "File " << ofile << " deleted successfully." << std::endl;
+        } else {
+            std::cout << "File " << ofile << " not found." << std::endl;
+        }
+    } catch (const std::__fs::filesystem::filesystem_error& err) {
+        std::cerr << "Filesystem error: " << err.what() << std::endl;
+    }
 
     if (inputFile.is_open()) {
         inputFile.read(reinterpret_cast<char*>(&order), sizeof(order)); // read order from first line
@@ -39,7 +51,7 @@ int main(int argc, char* argv[]) {
     }
 
     write_Healpix_map_to_fits(
-        "output.fits", *map, PLANCK_FLOAT64
+        ofile, *map, PLANCK_FLOAT64
     );
 
     printf("Wrote map to file!\n");

@@ -4,6 +4,7 @@
 #include <healpix_map_fitsio.h>
 #include <healpix_tables.h>
 #include <chrono>
+#include <filesystem>
 
 #include "register.h"
 
@@ -268,7 +269,7 @@ int main(int argc, char** argv) {
     int order = T_Healpix_Base<int>::nside2order(nside);
 
     // camera FOV and rotational offset (theta, phi)
-    pointing fov(M_PI/4, M_PI/4);
+    pointing fov(M_PI/3, M_PI/3);
     pointing off(M_PI/2, 0);
 
     // HEALPix Map (double valuation)
@@ -306,7 +307,15 @@ int main(int argc, char** argv) {
     // printf("Writing map to file...\n");
 
     // save the map to a file
-    std::remove("output.fits");
+    try {
+        if (std::__fs::filesystem::remove("output.fits")) {
+            std::cout << "Outfile deleted successfully." << std::endl;
+        } else {
+            std::cout << "Outfile not found." << std::endl;
+        }
+    } catch (const std::__fs::filesystem::filesystem_error& err) {
+        std::cerr << "Filesystem error: " << err.what() << std::endl;
+    }
 
     write_Healpix_map_to_fits(
         "output.fits", *map, PLANCK_FLOAT64
