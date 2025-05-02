@@ -96,51 +96,6 @@ void vec2ang(angle_t *angle, const Vector3d *vec)
     angle->phi = ((0 < vec->y()) - (vec->y() < 0)) * acos(vec->x() / (sqrt(pow(vec->x(), 2) + pow(vec->y(), 2))));
 }
 
-// long loc2pix(double z, double phi,
-//              double sth, bool have_sth)
-// {
-//     double za = abs(z);
-//     double tt = fmod(phi * inv_halfpi, 4.0); // in [0,4)
-
-//     if (za <= twothird) // Equatorial region
-//     {
-//         long nl4 = 4 * nside_;
-//         double temp1 = nside_ * (0.5 + tt);
-//         double temp2 = nside_ * z * 0.75;
-//         long jp = long(temp1 - temp2); // index of  ascending edge line
-//         long jm = long(temp1 + temp2); // index of descending edge line
-
-//         // ring number counted from z=2/3
-//         long ir = nside_ + 1 + jp - jm; // in {1,2n+1}
-//         long kshift = 1 - (ir & 1);     // kshift=1 if ir even, 0 otherwise
-
-//         long t1 = jp + jm - nside_ + kshift + 1 + nl4 + nl4;
-//         long ip = (order_ > 0) ? (t1 >> 1) & (nl4 - 1) : ((t1 >> 1) % nl4); // in {0,4n-1}
-
-//         return ncap_ + (ir - 1) * nl4 + ip;
-//     }
-//     else // North & South polar caps
-//     {
-//         double tp = tt - long(tt);
-//         double tmp = ((za < 0.99) || (!have_sth)) ? nside_ * sqrt(3 * (1 - za)) : nside_ * sth / sqrt((1. + za) / 3.);
-
-//         long jp = long(tp * tmp);         // increasing edge line index
-//         long jm = long((1.0 - tp) * tmp); // decreasing edge line index
-
-//         long ir = jp + jm + 1;   // ring number counted from the closest pole
-//         long ip = long(tt * ir); // in {0,4*ir-1}
-//         planck_assert((ip >= 0) && (ip < 4 * ir), "must not happen");
-//         // ip %= 4*ir;
-
-//         return (z > 0) ? 2 * ir * (ir - 1) + ip : npix_ - 2 * ir * (ir + 1) + ip;
-//     }
-// }
-
-// inline long zphi2pix(double z, double phi)
-// {
-//     return loc2pix(z, phi, 0., false);
-// }
-
 // get the ring above the specified
 inline int ring_above(double z)
 {
@@ -330,12 +285,6 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                 l = ip_lo < 0 ? ipix1 + ip_lo + nr : ipix1 + ip_lo;
                 h = ipix1 + ip_hi + 1;
 
-                // ip_lo = ((ip_lo % nr) + nr) % nr;
-                // ip_hi = ((ip_hi % nr) + nr) % nr;
-
-                // l = ((ipix1 + ip_lo) % nr + nr) % nr;
-                // h = ((ipix1 + ip_hi + 1) % nr + nr) % nr;
-
                 if (tr.start == -1 && tr.end == -1) {
                     tr.start = l;
                     tr.end = h;
@@ -345,6 +294,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                 bool w1 = l >= h;
                 bool w2 = tr.start >= tr.end;
 
+                // calculate intersection
                 if (!w1 && !w2) {
                     tr.start = max(tr.start, l);
                     tr.end = min(tr.end, h);
@@ -384,49 +334,6 @@ void query_multidisc(const Vector3d* norm, int norm_l,
 
                     tr.end = end;
                 }
-                
-                // if (ip_lo < 0) {
-                //     // tr.remove(ipix1 + ip_hi + 1, ipix1 + ip_lo + nr);
-                //     l = ipix1 + ip_lo + nr;
-                //     // h = ipix1 + ip_hi + 1;
-
-                //     // tr.start = l;
-                //     // tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
-                // }
-
-                // if (tr.start == -1 && tr.end == -1) {
-                //     tr.start = l;
-                //     tr.end = h;
-                //     continue;
-                // }
-
-                // if (l < h && tr.start > tr.end)
-                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
-                // else
-                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
-
-                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
-                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
-                // else
-                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
-
-                // if (l > h && tr.start < tr.end)
-                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
-                // else
-                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
-
-                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
-                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
-                // else
-                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
-
-                // else {
-                //     l = ipix1 + ip_lo;
-                //     h = ipix1 + ip_hi + 1;
-
-                //     tr.start = max(tr.start, l);
-                //     tr.end = min(tr.end, h);
-                // }
             }
         }
 

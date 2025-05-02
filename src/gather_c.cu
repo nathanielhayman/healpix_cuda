@@ -82,7 +82,7 @@ T wrapping_mod(T v, T m)
 /*
  * Convert an angle (theta, phi) into a normalized vec3 on the unit sphere
  */
-void ang2vec(Vector3d *vec, const angle_t *angle)
+__forceinline__ inline void ang2vec(Vector3d *vec, const angle_t *angle)
 {
     double st = sin(angle->theta);
     (*vec)[0] = st * cos(angle->phi);
@@ -90,14 +90,14 @@ void ang2vec(Vector3d *vec, const angle_t *angle)
     (*vec)[2] = cos(angle->theta);
 }
 
-void vec2ang(angle_t *angle, const Vector3d *vec)
+__forceinline__ inline void vec2ang(angle_t *angle, const Vector3d *vec)
 {
     angle->theta = acos(vec->z());
     angle->phi = ((0 < vec->y()) - (vec->y() < 0)) * acos(vec->x() / (sqrt(pow(vec->x(), 2) + pow(vec->y(), 2))));
 }
 
 // get the ring above the specified
-inline int ring_above(double z)
+__forceinline__ inline int ring_above(double z)
 {
     double az = abs(z);
     if (az <= twothird) // equatorial region
@@ -106,7 +106,7 @@ inline int ring_above(double z)
     return (z > 0) ? iring : 4 * nside_ - iring - 1;
 }
 
-inline double ring2z(long ring)
+__forceinline__ inline double ring2z(long ring)
 {
     if (ring < nside_)
         return 1 - ring * ring * fact2_;
@@ -140,7 +140,7 @@ inline void get_ring_info_small(long ring, long &startpix,
     }
 }
 
-inline bool is_in(int x, int l, int h, int nr)
+__forceinline__ inline bool is_in(int x, int l, int h, int nr)
 {
     if (l <= h)
         return l <= x && x < h;
@@ -158,7 +158,7 @@ inline bool is_in(int x, int l, int h, int nr)
  *  We have explicitly removed all code which relates to inclusive idenitification
  *  since it is not particularly relevant to our use case
  */
-void query_multidisc(const Vector3d *norm, int norm_l,
+__device__ void query_multidisc(const Vector3d *norm, int norm_l,
                      const double *rad, int rad_l, hpbound_t &pixset)
 {
     int nv = norm_l; // number of vertices
@@ -381,7 +381,7 @@ void query_multidisc(const Vector3d *norm, int norm_l,
     pixset.data_size = irmax - irmin - dr;
 }
 
-void get_circle(const Vector3d *point, long q1, long q2, Vector3d &center,
+__device__ void get_circle(const Vector3d *point, long q1, long q2, Vector3d &center,
                 double &cosrad)
 {
     center = (point[q1] + point[q2]).normalized();
@@ -399,7 +399,7 @@ void get_circle(const Vector3d *point, long q1, long q2, Vector3d &center,
         }
 }
 
-void get_circle(const Vector3d *point, long q, Vector3d &center,
+__device__ void get_circle(const Vector3d *point, long q, Vector3d &center,
                 double &cosrad)
 {
     center = (point[0] + point[q]).normalized();
@@ -414,7 +414,7 @@ void get_circle(const Vector3d *point, long q, Vector3d &center,
  *  to a four-pixel "square" and performs a query_multidisc to find the corresponding
  *  HEALPix pixels
  */
-void query_square(const angle_t *vertex, hpbound_t &pixset)
+__device__ void query_square(const angle_t *vertex, hpbound_t &pixset)
 {
     // convert all pointing vectors to vec3
     Vector3d vv[4];
@@ -449,7 +449,7 @@ void query_square(const angle_t *vertex, hpbound_t &pixset)
 /*
  * Stacking kernel for map additions
  */
-void __stack(int *map, int pix, int value)
+__forceinline__ inline void __stack(int *map, int pix, int value)
 {
     // simple averaged stacking, add full value if it is empty
     if (map[pix] == 0)
@@ -461,7 +461,7 @@ void __stack(int *map, int pix, int value)
 /*
  * Add a single element onto an existing HEALPix map
  */
-int stack_hp(int *map, int pix, int value)
+__forceinline__ inline int stack_hp(int *map, int pix, int value)
 {
     __stack(map, pix, value);
 
