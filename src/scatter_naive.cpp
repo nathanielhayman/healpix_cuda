@@ -13,7 +13,7 @@
 
 #include "stb_image.h"
 
-#define NSIDE 2048
+#define NSIDE 32
 #define MAX_NSIDE 536870912
 
 /*

@@ -11,7 +11,7 @@
 #include "stb_image.h"
 
 #define BLOCK_DIM 16
-#define ORDER 5
+#define ORDER 12
 #define MAX_NSIDE 536870912
 #define MAX_ORDER
 
@@ -52,11 +52,11 @@ template <typename I>
 using stdvec = std::vector<I>;
 
 /*! Writes diagnostic output and exits with an error status. */
-#define planck_fail(msg)                                               \
-    do                                                                 \
-    {                                                                  \
-        printf("Planck failure: %s\n", msg);                           \
-        throw -1;                                                      \
+#define planck_fail(msg)                     \
+    do                                       \
+    {                                        \
+        printf("Planck failure: %s\n", msg); \
+        throw -1;                            \
     } while (0)
 
 /*! Writes diagnostic output and exits with an error status if \a testval
@@ -84,9 +84,9 @@ T wrapping_mod(T v, T m)
  */
 void ang2vec(Vector3d *vec, const angle_t *angle)
 {
-    double st=sin(angle->theta);
-    (*vec)[0] = st*cos(angle->phi);
-    (*vec)[1] = st*sin(angle->phi);
+    double st = sin(angle->theta);
+    (*vec)[0] = st * cos(angle->phi);
+    (*vec)[1] = st * sin(angle->phi);
     (*vec)[2] = cos(angle->theta);
 }
 
@@ -95,51 +95,6 @@ void vec2ang(angle_t *angle, const Vector3d *vec)
     angle->theta = acos(vec->z());
     angle->phi = ((0 < vec->y()) - (vec->y() < 0)) * acos(vec->x() / (sqrt(pow(vec->x(), 2) + pow(vec->y(), 2))));
 }
-
-// long loc2pix(double z, double phi,
-//              double sth, bool have_sth)
-// {
-//     double za = abs(z);
-//     double tt = fmod(phi * inv_halfpi, 4.0); // in [0,4)
-
-//     if (za <= twothird) // Equatorial region
-//     {
-//         long nl4 = 4 * nside_;
-//         double temp1 = nside_ * (0.5 + tt);
-//         double temp2 = nside_ * z * 0.75;
-//         long jp = long(temp1 - temp2); // index of  ascending edge line
-//         long jm = long(temp1 + temp2); // index of descending edge line
-
-//         // ring number counted from z=2/3
-//         long ir = nside_ + 1 + jp - jm; // in {1,2n+1}
-//         long kshift = 1 - (ir & 1);     // kshift=1 if ir even, 0 otherwise
-
-//         long t1 = jp + jm - nside_ + kshift + 1 + nl4 + nl4;
-//         long ip = (order_ > 0) ? (t1 >> 1) & (nl4 - 1) : ((t1 >> 1) % nl4); // in {0,4n-1}
-
-//         return ncap_ + (ir - 1) * nl4 + ip;
-//     }
-//     else // North & South polar caps
-//     {
-//         double tp = tt - long(tt);
-//         double tmp = ((za < 0.99) || (!have_sth)) ? nside_ * sqrt(3 * (1 - za)) : nside_ * sth / sqrt((1. + za) / 3.);
-
-//         long jp = long(tp * tmp);         // increasing edge line index
-//         long jm = long((1.0 - tp) * tmp); // decreasing edge line index
-
-//         long ir = jp + jm + 1;   // ring number counted from the closest pole
-//         long ip = long(tt * ir); // in {0,4*ir-1}
-//         planck_assert((ip >= 0) && (ip < 4 * ir), "must not happen");
-//         // ip %= 4*ir;
-
-//         return (z > 0) ? 2 * ir * (ir - 1) + ip : npix_ - 2 * ir * (ir + 1) + ip;
-//     }
-// }
-
-// inline long zphi2pix(double z, double phi)
-// {
-//     return loc2pix(z, phi, 0., false);
-// }
 
 // get the ring above the specified
 inline int ring_above(double z)
@@ -185,7 +140,8 @@ inline void get_ring_info_small(long ring, long &startpix,
     }
 }
 
-inline bool is_in(int x, int l, int h, int nr) {
+inline bool is_in(int x, int l, int h, int nr)
+{
     if (l <= h)
         return l <= x && x < h;
     return x >= l || x < h;
@@ -202,8 +158,8 @@ inline bool is_in(int x, int l, int h, int nr) {
  *  We have explicitly removed all code which relates to inclusive idenitification
  *  since it is not particularly relevant to our use case
  */
-void query_multidisc(const Vector3d* norm, int norm_l,
-                     const double* rad, int rad_l, hpbound_t &pixset)
+void query_multidisc(const Vector3d *norm, int norm_l,
+                     const double *rad, int rad_l, hpbound_t &pixset)
 {
     int nv = norm_l; // number of vertices
 
@@ -275,8 +231,8 @@ void query_multidisc(const Vector3d* norm, int norm_l,
     pixset.rstart = irmin;
     pixset.rend = irmax;
 
-    int dr = 0;  // degenerate rows which do not contain any intersected pixels
-    bool ff = false;  // was the first non-degenerate row found
+    int dr = 0;      // degenerate rows which do not contain any intersected pixels
+    bool ff = false; // was the first non-degenerate row found
 
     /*
      *  Iterates over the identified rings to extract individual pixels. Also
@@ -336,7 +292,8 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                 // l = ((ipix1 + ip_lo) % nr + nr) % nr;
                 // h = ((ipix1 + ip_hi + 1) % nr + nr) % nr;
 
-                if (tr.start == -1 && tr.end == -1) {
+                if (tr.start == -1 && tr.end == -1)
+                {
                     tr.start = l;
                     tr.end = h;
                     continue;
@@ -345,38 +302,56 @@ void query_multidisc(const Vector3d* norm, int norm_l,
                 bool w1 = l >= h;
                 bool w2 = tr.start >= tr.end;
 
-                if (!w1 && !w2) {
+                if (!w1 && !w2)
+                {
                     tr.start = max(tr.start, l);
                     tr.end = min(tr.end, h);
-                } else if (w1 && w2) {
+                }
+                else if (w1 && w2)
+                {
                     if (!is_in(tr.start, l, h, nr))
                         tr.start = l;
-                    
+
                     if (!is_in(tr.end - 1, l, h, nr))
                         tr.end = h;
-                } else {
+                }
+                else
+                {
                     int l2 = tr.start;
                     int h2 = tr.end;
 
-                    if (!w1 && w2) {
+                    if (!w1 && w2)
+                    {
                         int tmp;
-                        tmp = l; l = l2; l2 = tmp;
-                        tmp = h; h = h2; h2 = tmp;
-                        tmp = w1; w1 = w2; w2 = tmp;
+                        tmp = l;
+                        l = l2;
+                        l2 = tmp;
+                        tmp = h;
+                        h = h2;
+                        h2 = tmp;
+                        tmp = w1;
+                        w1 = w2;
+                        w2 = tmp;
                     }
 
-                    if (is_in(l2, l, h, nr)) {
+                    if (is_in(l2, l, h, nr))
+                    {
                         tr.start = l2;
-                    } else if (is_in(l, l2, h2, nr)) {
+                    }
+                    else if (is_in(l, l2, h2, nr))
+                    {
                         tr.start = l;
-                    } else {
+                    }
+                    else
+                    {
                         // planck_assert(false, "Invalid intersection of edges!\n");
                         nysq = false;
                         break;
                     }
 
                     int end = (h < h2) ? h : h2;
-                    if (!is_in(tr.start, l2, h2, nr) || !is_in(tr.start, l, h, nr)) {
+                    if (!is_in(tr.start, l2, h2, nr) || !is_in(tr.start, l, h, nr))
+                    {
                         // planck_assert(false, "Invalid intersection of edges!\n");
                         nysq = false;
                         break;
@@ -384,56 +359,15 @@ void query_multidisc(const Vector3d* norm, int norm_l,
 
                     tr.end = end;
                 }
-                
-                // if (ip_lo < 0) {
-                //     // tr.remove(ipix1 + ip_hi + 1, ipix1 + ip_lo + nr);
-                //     l = ipix1 + ip_lo + nr;
-                //     // h = ipix1 + ip_hi + 1;
-
-                //     // tr.start = l;
-                //     // tr.end = min(tr.end, h); // if tr is higher than the highest end, cut it off
-                // }
-
-                // if (tr.start == -1 && tr.end == -1) {
-                //     tr.start = l;
-                //     tr.end = h;
-                //     continue;
-                // }
-
-                // if (l < h && tr.start > tr.end)
-                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
-                // else
-                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
-
-                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
-                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
-                // else
-                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
-
-                // if (l > h && tr.start < tr.end)
-                //     tr.start = min(tr.start, l);  // l' = min(l_0, l)
-                // else
-                //     tr.start = max(tr.start, l);  // l' = max(l_0, l)
-
-                // if ((tr.start > tr.end) && l < h)  // either l > h or l_0 > h_0
-                //     tr.end = max(tr.end, h);  // h' = max(h_0, h)
-                // else
-                //     tr.end = min(tr.end, h);  // h' = min(h_0, h)
-
-                // else {
-                //     l = ipix1 + ip_lo;
-                //     h = ipix1 + ip_hi + 1;
-
-                //     tr.start = max(tr.start, l);
-                //     tr.end = min(tr.end, h);
-                // }
             }
         }
 
         if (tr.start == tr.end || !nysq)
             ++dr;
-        else {
-            if (!ff) {
+        else
+        {
+            if (!ff)
+            {
                 pixset.rstart = iz;
                 ff = true;
             }
@@ -447,7 +381,7 @@ void query_multidisc(const Vector3d* norm, int norm_l,
     pixset.data_size = irmax - irmin - dr;
 }
 
-void get_circle(const Vector3d* point, long q1, long q2, Vector3d &center,
+void get_circle(const Vector3d *point, long q1, long q2, Vector3d &center,
                 double &cosrad)
 {
     center = (point[q1] + point[q2]).normalized();
@@ -465,7 +399,7 @@ void get_circle(const Vector3d* point, long q1, long q2, Vector3d &center,
         }
 }
 
-void get_circle(const Vector3d* point, long q, Vector3d &center,
+void get_circle(const Vector3d *point, long q, Vector3d &center,
                 double &cosrad)
 {
     center = (point[0] + point[q]).normalized();
@@ -478,9 +412,9 @@ void get_circle(const Vector3d* point, long q, Vector3d &center,
 /*
  *  Assembles the discs whose interesection creates the spherical-space analog
  *  to a four-pixel "square" and performs a query_multidisc to find the corresponding
- *  HEALPix pixels 
+ *  HEALPix pixels
  */
-void query_square(const angle_t* vertex, hpbound_t &pixset)
+void query_square(const angle_t *vertex, hpbound_t &pixset)
 {
     // convert all pointing vectors to vec3
     Vector3d vv[4];
@@ -506,7 +440,8 @@ void query_square(const angle_t* vertex, hpbound_t &pixset)
 
     double rad[4];
 
-    for (int i = 0; i < 4; i++) rad[i] = halfpi;  // every disc has radius pi/2
+    for (int i = 0; i < 4; i++)
+        rad[i] = halfpi; // every disc has radius pi/2
 
     query_multidisc(normal, 4, rad, 4, pixset);
 }
@@ -514,37 +449,44 @@ void query_square(const angle_t* vertex, hpbound_t &pixset)
 /*
  * Stacking kernel for map additions
  */
-void __stack(int* map, int pix, int value) {
+void __stack(int *map, int pix, int value)
+{
     // simple averaged stacking, add full value if it is empty
     if (map[pix] == 0)
         map[pix] = value;
     else
-        map[pix] = (map[pix] + value)/2;
+        map[pix] = (map[pix] + value) / 2;
 }
 
 /*
  * Add a single element onto an existing HEALPix map
  */
-int stack_hp(int* map, int pix, int value) 
+int stack_hp(int *map, int pix, int value)
 {
     __stack(map, pix, value);
 
     return 0;
 }
 
-void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, int y,
+__global__ void register_pixel(const unsigned char *imageData, Vector2i *imageSize,
                     camera_t *deviceCamProps, int *deviceMap)
 {
+    int x = blockDim.x * blockIdx.x + threadIdx.x;
+    int y = blockDim.y * blockIdx.y + threadIdx.y;
+
     pixeldata pd;
 
     // Register pixel center to polar coordinates
     pd.theta = (y - imageSize->y() / 2) * deviceCamProps->fov.theta / imageSize->y() + deviceCamProps->off.theta;
     pd.phi = (x - imageSize->x() / 2) * deviceCamProps->fov.phi / imageSize->x() + deviceCamProps->off.phi;
 
-    if (deviceCamProps->n_channels == 3) {
+    if (deviceCamProps->n_channels == 3)
+    {
         rgb_t cur_pix = ((rgb_t *)imageData)[y * imageSize->x() + x];
         pd.value = (cur_pix.r + cur_pix.g + cur_pix.b) / (3);
-    } else {
+    }
+    else
+    {
         pd.value = imageData[(y * imageSize->x() + x) * 3];
     }
 
@@ -568,7 +510,7 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
 
     hpbound_t pixels;
 
-    pixels.pixels = (hprange_t*)malloc(sizeof(hprange_t) * nring_);
+    pixels.pixels = (hprange_t *)malloc(sizeof(hprange_t) * nring_);
 
     // find corresponding HEALPix pixel indices
     query_square(vecs, pixels);
@@ -580,9 +522,11 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
     bool shifted;
 
     // update spherical pixels with corresponding image value
-    for (int row = 0; row < pixels.data_size; row++) {  // row
+    for (int row = 0; row < pixels.data_size; row++)
+    { // row
         range = pixels.pixels[row];
-        if (range.start > range.end) {
+        if (range.start > range.end)
+        {
             get_ring_info_small(range.ring, minpix, numpix, shifted);
 
             for (int i = range.start; i < minpix + numpix; i++)
@@ -590,8 +534,10 @@ void register_pixel(const unsigned char *imageData, Vector2i *imageSize, int x, 
 
             for (int i = minpix; i < range.end; i++)
                 stack_hp(deviceMap, i, pd.value);
-        } else {
-            for (int i = range.start; i < range.end; i++)  // pixel
+        }
+        else
+        {
+            for (int i = range.start; i < range.end; i++) // pixel
                 stack_hp(deviceMap, i, pd.value);
         }
     }
@@ -601,57 +547,67 @@ int main(int argc, char *argv[])
 {
     int nside, mapSize;
     int width, height, channels;
-    int imageMag;
-    Vector2i imageSize;
+    int imageSize;
 
     camera_t *camProps;
-    unsigned char *imageData;
-    int *mapData;
 
-    const char *fileLoc = "image.jpg";
+    std::string file_loc = "image.jpg";
 
     if (argc > 1)
     {
-        fileLoc = argv[1];
+        file_loc = argv[1];
     }
 
     mapSize = 12 * pow((long)nside, 2);
 
-    camProps = (camera_t *)calloc(1, sizeof(camera_t));  // custom camera properties
-    mapData = (int *)calloc(mapSize, sizeof(int)); // HEALPix pixel data
+    camProps = (camera_t *)calloc(sizeof(camera_t), 1);
 
     // camera FOV and rotational offset (theta, phi)
     camProps->fov.theta = halfpi / 2;
     camProps->fov.phi = halfpi / 2;
     camProps->off.theta = halfpi;
-    camProps->off.phi = 0;
 
-    imageData = stbi_load(
-        fileLoc, &width, &height, &channels, 3);
-    
-    camProps->n_channels = channels;
+    unsigned char *img_data = stbi_load(
+        file_loc, &width, &height, &channels, 3);
 
     // set size of image data for transfer
-    imageSize = Vector2i(width, height);
+    imageSize = width * height * sizeof(char);
 
-    imageMag = imageSize.x() * imageSize.y();
+    cudaMalloc((void **)&deviceInput, imageSize);
+    cudaMalloc((void **)&deviceCamProps, sizeof(camera_t));
+    cudaMalloc((void **)&deviceMap, mapSize);
 
-    for (int i = 0; i < (imageMag + BLOCK_DIM - 1) / BLOCK_DIM; i++)
-    { // outer loop -> blocks
-        for (int j = 0; j < BLOCK_DIM; j++)
-        { // inner loop -> threads
-            if (i * BLOCK_DIM + j >= imageMag)
-                break;
+    cudaDeviceSynchronize();
 
-            register_pixel(imageData, &imageSize, i, j, camProps, mapData);
-        }
-    }
+    // copy image to device
+    cudaMemcpy(deviceInput, imageData, imageSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceCamProps, camProps, sizeof(camera_t), cudaMemcpyHostToDevice);
 
-    FILE* fptr;
+    cudaDeviceSynchronize();
+
+    dim3 dimBlock(BLOCK_DIM, BLOCK_DIM, 1);
+    dim3 dimGrid((inputLength + dimBlock.x - 1) / dimBlock.x, 1, 1);
+
+    register_pixel<<<dimGrid, dimBlock>>>(
+        deviceInput,
+        imageSize,
+        deviceCamProps,
+        deviceMap);
+
+    cudaMemcpy(hostMap, deviceMap, mapSize, cudaMemcpyDeviceToHost);
+
+    cudaDeviceSynchronize();
+
+    cudaFree(deviceInput);
+    cudaFree(deviceCamProps);
+    cudaFree(deviceMap);
+
+    FILE *fptr;
 
     fptr = fopen("map_out", "w");
 
-    if (fptr == NULL) {
+    if (fptr == NULL)
+    {
         perror("Error opening file");
         return 1;
     }
@@ -670,69 +626,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-// int main(int argc, char *argv[])
-// {
-//   int nside, mapSize;
-//   int width, height, channels;
-//   int imageSize;
-
-//   camera_t* camProps;
-
-//   std::string file_loc = "image.jpg";
-
-//   if (argc > 1)
-//   {
-//     file_loc = argv[1];
-//   }
-
-//   mapSize = 12 * pow((long)nside, 2);
-
-//   camProps = (camera_t *)calloc(sizeof(camera_t), 1);
-
-//   // camera FOV and rotational offset (theta, phi)
-//   camProps->fov.theta = halfpi/2;
-//   camProps->fov.phi = halfpi/2;
-//   camProps->off.theta = halfpi;
-
-//   unsigned char *img_data = stbi_load(
-//       file_loc, &width, &height, &channels, 3);
-
-//   // set size of image data for transfer
-//   imageSize = width * height * sizeof(char);
-
-//   cudaMalloc((void **)&deviceInput, imageSize);
-//   cudaMalloc((void **)&deviceCamProps, sizeof(camera_t));
-//   cudaMalloc((void **)&deviceMap, mapSize);
-
-//   cudaDeviceSynchronize();
-
-//   // copy image to device
-//   cudaMemcpy(deviceInput, imageData, imageSize, cudaMemcpyHostToDevice);
-//   cudaMemcpy(deviceCamProps, camProps, sizeof(camera_t), cudaMemcpyHostToDevice);
-
-//   cudaDeviceSynchronize();
-
-//   dim3 dimBlock(BLOCK_DIM, BLOCK_DIM, 1);
-//   dim3 dimGrid((inputLength + dimBlock.x - 1) / dimBlock.x, 1, 1);
-
-//   register_image<<<dimGrid, dimBlock>>>(
-//       deviceInput,
-//       imageSize,
-//       deviceCamProps,
-//       deviceMap,
-//       nside);
-
-//   cudaMemcpy(hostMap, deviceMap, mapSize, cudaMemcpyDeviceToHost);
-
-//   cudaDeviceSynchronize();
-
-//   cudaFree(deviceInput);
-//   cudaFree(deviceCamProps);
-//   cudaFree(deviceMap);
-
-//   free(camProps);
-//   free(imageData);
-
-//   return 0;
-// }
